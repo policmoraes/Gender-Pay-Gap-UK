@@ -11,16 +11,16 @@ Using our new SQL skills, your task is to independentlyexplore a data set to und
 
 We were encouraged to explore the data.
 Let’s take some time to do this, and specifically think about:
-●Is the data from an official source?
-●How is the data compiled and reported?
-●What kinds of metrics are collected?
-●Who has to take part in the reporting process?
-●What are some limitations associated with the data set?
-●How reliable is the data?Be ready to share your thoughts!
+- Is the data from an official source?
+- How is the data compiled and reported?
+- What kinds of metrics are collected?
+- Who has to take part in the reporting process?
+- What are some limitations associated with the data set?
+- How reliable is the data?Be ready to share your thoughts!
 
 
 Some of the questions we will be answering today include:
-●What is the average pay gap for companies across the UK?
-●Are there differences between the average pay gaps across industries?
-●Are there differences between the average pay gaps across different regions of the UK?
-●What are some of the companies with the largest pay gaps?
+- What is the average pay gap for companies across the UK?
+- Are there differences between the average pay gaps across industries?
+- Are there differences between the average pay gaps across different regions of the UK?
+- What are some of the companies with the largest pay gaps?
