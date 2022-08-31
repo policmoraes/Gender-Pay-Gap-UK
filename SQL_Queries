@@ -1,0 +1,237 @@
+Lab: SQL on Gender pay gap data
+ 
+1. How many companies are in the data set?
+ 
+SELECT COUNT(DISTINCT employerid) 
+FROM public.gender_pay_gap_21_22;
+–10174 companies
+ 
+2. How many of them submitted their data after the reporting deadline?
+--learnsql.com/cookbook/how-to-find-the-interval-between-two-dates-in-postgresql/
+SELECT COUNT(*)
+FROM public.gender_pay_gap_21_22
+WHERE datesubmitted::date - duedate::date > 0
+–312
+
+SELECT COUNT(*)
+FROM public.gender_pay_gap_21_22
+WHERE submittedafterthedeadline 
+–361
+ 
+ 
+3. How many companies have not provided a URL?
+ 
+SELECT COUNT(*) as total
+FROM public.gender_pay_gap_21_22
+WHERE companylinktogpginfo = '0'
+ORDER BY total DESC;
+ 
+SELECT COUNT(*) as total, companylinktogpginfo
+FROM public.gender_pay_gap_21_22
+--WHERE companylinktogpginfo IS null
+GROUP BY companylinktogpginfo
+ORDER BY total DESC;
+–3700
+ 
+4. Which measures of pay gap contain too much missing data, and should not be used in our analysis?
+—First, we have to consider that the "0' in value could have different meanings, since equity on pay (diffmeanhourlypercent = 0), gap that benefits men (diffmeanhourlypercent > 0) and benefits women (diffmeanhourlypercent < 0), or just a missing value (could be not imputed). But, if we saw the 
+'Diffmedianbonuspercent', ¼  from the values is '0'. 
+ 
+SELECT COUNT(diffmedianbonuspercent)
+FROM public.gender_pay_gap_21_22
+WHERE diffmedianbonuspercent = 0
+--4019
+ 
+SELECT COUNT(diffmedianhourlypercent)
+FROM public.gender_pay_gap_21_22
+WHERE diffmedianhourlypercent = 0
+--861
+ 
+SELECT COUNT(diffmeanhourlypercent)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanhourlypercent = 0
+--99
+ 
+SELECT COUNT(diffmeanbonuspercent)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanbonuspercent = 0
+--2837
+ 
+ 
+ 
+Can you find out what the ‘SicCodes’ column corresponds to? Is there a way we can
+understand what each SIC code represents? Search online for extra information.
+Yes, I found on the Data Dictionary that "SicCodes" refers to  a company's  purpose or sector. Then, I found online the list of the codes that was really helpful to understand the industry.
+https://resources.companieshouse.gov.uk/sic/
+
+5. Choose which column you will use to calculate the pay gap. Will you use DiffMeanHourlyPercent or DiffMedianHourlyPercent? Can you justify your choice?
+I decided to use 'diffmeanhourlypercent' because it is more consistent about the numbers and easy to understand and explain to our clients the results.
+ 
+6. Use an appropriate metric to find the average gender pay gap across all the companies in the data set. Did you use the mean or the median as your averaging metric? Can you justify your choice?
+I used Mean as a metric because that can return the average of the companies  "behaviour" about gender gap, considering all values.
+ 
+7. What are some caveats we need to be aware of when reporting the figure we’ve just calculated?
+–Using Mean can, of course, be tricky because we are considering outliers values. Some analysis should be better using Median to take the middle point of the range, but in this case I think we can't ignore that some companies have the employees in both edges (min and max) and the data about 'diffmedianhourlypercent' is not clear and consistent.
+ 
+8. What are the 10 companies with the largest pay gaps skewed towards men?
+
+SELECT employername, ROUND(diffmeanhourlypercent) 
+FROM public.gender_pay_gap_21_22
+ORDER BY diffmeanhourlypercent DESC
+LIMIT 10;
+
+"HPI UK HOLDING LTD."	100
+"PSJ FABRICATIONS LTD"	100
+"M. ANDERSON CONSTRUCTION LIMITED"	100
+"BIRMINGHAM CITY FOOTBALL CLUB PLC"	99
+"ACUSHNET EUROPE LTD"	97
+"HOOK 2 SISTERS LIMITED"	92
+"CHELSEA FOOTBALL CLUB LIMITED"	92
+"BRAND ENERGY & INFRASTRUCTURE SERVICES UK, LTD."	91
+"MANCHESTER CITY FOOTBALL CLUB LIMITED"	91
+"NEWCASTLE UNITED FOOTBALL COMPANY LIMITED"	90
+9. What do you notice about the results? Are these well-known companies?
+–I noticed the 40% of the results returned are football clubs globally known.
+ 
+ 
+10. Apply some additional filtering to pick out the most significant companies with large pay gaps.
+–I did the opposite of the 9 exercise to see which companies have a gap skewed towards women and I realised that the range for men ( >0) is 0 to 100, and for women (<0) is -0.1 to -184. Could be some rule of program input or the companies are submitting wrong information, maybe for not understanding the criterion or doing wrong calculations. But the most significant companies are, for sure, Football Clubs
+ 
+SELECT employername, ROUND(diffmeanhourlypercent)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanhourlypercent > 80
+
+SELECT employername, ROUND(diffmeanhourlypercent) 
+FROM public.gender_pay_gap_21_22
+ORDER BY diffmeanhourlypercent ASC
+LIMIT 10;
+
+
+11. How would you report on the results? Can we say that these companies are engaging in unlawful
+pay discrimination?
+– In this case, male players are the main core of the business so is expected that companies are composed for majoritary for men and they are highly paid because is how the business works. If we try to search how is the average for female football clubs we could do another analysis, OR, the fact that we not saw any female football club in the list of the pay gap toward women is a start. 
+
+12. What’s the average pay gap in London versus outside London?
+
+SELECT avg(avg_london)
+FROM (
+    SELECT diffmeanhourlypercent as avg_london
+FROM public.gender_pay_gap_21_22
+WHERE address LIKE '%London%') AS london
+--15.7%
+
+SELECT avg(avg_outside)
+FROM (
+    SELECT diffmeanhourlypercent as avg_outside
+FROM public.gender_pay_gap_21_22
+WHERE address NOT LIKE '%London%') AS outside
+--13.04%
+
+
+13. What’s the average pay gap in London versus Birmingham?
+
+
+SELECT avg(avg_birmingham)
+FROM (
+    SELECT diffmeanhourlypercent as avg_birmingham
+FROM public.gender_pay_gap_21_22
+WHERE address LIKE '%Birmingham%') AS birmingham
+--13.22%
+
+14. What is the average pay gap within schools?
+ 
+SELECT AVG(diffmeanhourlypercent) as avg_pay_schools
+FROM public.gender_pay_gap_21_22
+WHERE siccodes LIKE '85%'
+--17.31%
+ 
+ 
+15. What is the average pay gap within banks?
+ 
+SELECT AVG(diffmeanhourlypercent) as avg_pay_bank
+FROM public.gender_pay_gap_21_22
+WHERE siccodes LIKE '%64191%'
+--31%
+ 
+ 
+16. Is there a relationship between the number of employees at a company and the average pay gap
+–If we look in the average that is not related because the variation is less than 2%
+
+SELECT employersize, ROUND(AVG(diffmeanhourlypercent),2) AS avg_employersize
+FROM public.gender_pay_gap_21_22
+WHERE employersize NOT LIKE 'Not Provided'
+GROUP BY employersize
+ORDER BY employersize DESC
+
+
+Other insights
+According with the data, how many companies pays more to men?
+
+SELECT COUNT(employerid)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanhourlypercent > 0
+
+GROUP BY employerid
+--8885
+
+According with the data, how many companies pays more to women? 
+
+SELECT COUNT(employerid)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanhourlypercent < 0
+GROUP BY employerid
+--1190
+
+According with the data, how many companies pays the same?
+
+SELECT COUNT(employerid)
+FROM public.gender_pay_gap_21_22
+WHERE diffmeanhourlypercent = 0
+GROUP BY employerid
+--99
+
+
+Are there differences between the average pay gaps across industries?
+--string_to_array ( string text, delimiter text [, null_string text ] ) → text[]
+--unnest ( anyarray )
+
+SELECT siccodes, AVG(diffmeanhourlypercent)
+FROM gender_pay_gap_21_22
+GROUP BY siccodes;
+-- select siccodes, replace(siccodes, '\t', '') as clean
+-- from gender_pay_gap_21_22 limit 10;
+
+-- SELECT diffmeanhourlypercent as pay_gap,
+--           unnest(string_to_array( siccodes, ',')) as industry
+--       from gender_pay_gap_21_22
+SELECT industry, AVG(pay_gap)
+  FROM (
+    SELECT diffmeanhourlypercent as pay_gap,
+          cast(unnest(string_to_array( siccodes, ',')) as int)  as industry
+      from gender_pay_gap_21_22
+) as pay_gap_by_industry    
+ GROUP BY pay_gap_by_industry.industry
+ ORDER BY pay_gap_by_industry.industry desc
+ 
+Are there differences between the average pay gaps across different regions of the UK?
+
+SELECT postcode, ROUND(AVG(diffmeanhourlypercent), 2) AS pay_gap_avg
+FROM gender_pay_gap_21_22
+GROUP BY postcode
+ORDER BY postcode ASC;
+
+What are some of the companies with the largest pay gaps
+select employername, count(*) as total from gender_pay_gap_21_22
+ group by employername
+ order by total desc;
+
+SELECT employername, ROUND(AVG(diffmeanhourlypercent), 2) AS pay_gap_avg
+FROM public.gender_pay_gap_21_22
+GROUP BY employername
+ORDER BY pay_gap_avg DESC;
+
+SELECT employername, ABS(ROUND(diffmeanhourlypercent, 2)) AS pay_gap_avg
+FROM public.gender_pay_gap_21_22
+ORDER BY pay_gap_avg DESC
+LIMIT 10;
+
